@@ -1,0 +1,9 @@
+name "minlog"
+description "minimal logger"
+authors "redthing1"
+copyright "Copyright © 2022, redthing1"
+license "proprietary"
+
+targetType "library"
+
+dependency "colorize" version="~>1.0.5"

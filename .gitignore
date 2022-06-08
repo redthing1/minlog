@@ -1,0 +1,17 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/minlog
+minlog.so
+minlog.dylib
+minlog.dll
+minlog.a
+minlog.lib
+minlog-test-*
+*.exe
+*.o
+*.obj
+*.lst
+*.a
+*.so
