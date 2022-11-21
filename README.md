@@ -8,8 +8,5 @@ simple minimal logger for D
 import minlog;
 
 auto log = new Logger(Verbosity.info);
-log.sinks ~= new Logger.ConsoleSink();
-log.verbosity = Verbosity.trace;
-
 log.info("hello world");
 ````
