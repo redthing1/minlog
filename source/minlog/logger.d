@@ -4,6 +4,7 @@ import std.stdio;
 import std.format;
 import std.array;
 import std.conv;
+import std.datetime;
 import std.uni;
 import std.range;
 import std.algorithm;
@@ -20,63 +21,63 @@ enum Verbosity : int {
 
 struct Logger {
     public Verbosity verbosity = Verbosity.info;
+    public bool use_colors = true;
+    public bool use_meta = true;
+    public bool meta_timestamp = true;
+    public string source = null;
 
     this(Verbosity verbosity) {
         this.verbosity = verbosity;
     }
 
-    private static string shortVerbosity(Verbosity level) {
-        switch (level) {
-        case Verbosity.debug_:
-            return "dbg";
-        case Verbosity.trace:
-            return "trce";
-        case Verbosity.info:
-            return "info";
-        case Verbosity.warn:
-            return "warn";
-        case Verbosity.error:
-            return "err!";
-        case Verbosity.crit:
-            return "crit";
-        default:
-            return to!string(level);
-        }
-    }
-
-    private static string formatMeta(Verbosity level) {
-        import std.datetime;
-
+    private string formatMeta(Verbosity level) {
         auto time = cast(TimeOfDay) Clock.currTime();
-        return format("[%s/%s]", shortVerbosity(level), time.toISOExtString());
-    }
+        auto level_str = shortVerbosity(level);
 
-    private colorize.fg colorFor(Verbosity level) {
-        switch (level) {
-        case Verbosity.debug_:
-            return colorize.fg.light_black;
-        case Verbosity.trace:
-            return colorize.fg.light_black;
-        case Verbosity.info:
-            return colorize.fg.green;
-        case Verbosity.warn:
-            return colorize.fg.yellow;
-        case Verbosity.error:
-            return colorize.fg.red;
-        case Verbosity.crit:
-            return colorize.fg.red;
-        default:
-            return colorize.fg.white;
+        auto sb = appender!string;
+        sb ~= "[";
+        if (source !is null) {
+            sb ~= source;
+            sb ~= ":";
         }
+        sb ~= level_str;
+        if (meta_timestamp) {
+            sb ~= "/";
+            sb ~= time.toISOExtString();
+        }
+        sb ~= "]";
+
+        return sb.data;
     }
 
     /// writes a message
     public void write_line(string log, Verbosity level) {
-        if (level <= verbosity) {
-            auto col = colorFor(level);
-            colorize.cwritef(formatMeta(level).color(col, colorize.bg.black));
-            colorize.cwritefln(" %s", log);
+        if (level > verbosity)
+            return;
+
+        auto level_color = colorFor(level);
+        auto meta_str = formatMeta(level);
+
+        auto sb = appender!string;
+
+        if (use_meta) {
+            if (use_colors) {
+                sb ~= meta_str.color(level_color, colorize.bg.black);
+            } else {
+                sb ~= meta_str;
+            }
+            sb ~= " ";
         }
+
+        sb ~= log;
+
+        if (use_colors) {
+            cwriteln(sb.data);
+        } else {
+            writeln(sb.data);
+        }
+
+        stdout.flush();
     }
 
     public void put(T...)(T args, Verbosity level) {
@@ -118,4 +119,42 @@ struct Logger {
     }
 
     alias cri = crit;
+
+    private static string shortVerbosity(Verbosity level) {
+        switch (level) {
+        case Verbosity.debug_:
+            return "dbg";
+        case Verbosity.trace:
+            return "trc";
+        case Verbosity.info:
+            return "inf";
+        case Verbosity.warn:
+            return "wrn";
+        case Verbosity.error:
+            return "err";
+        case Verbosity.crit:
+            return "crt";
+        default:
+            return to!string(level);
+        }
+    }
+
+    private colorize.fg colorFor(Verbosity level) {
+        switch (level) {
+        case Verbosity.debug_:
+            return colorize.fg.light_black;
+        case Verbosity.trace:
+            return colorize.fg.light_black;
+        case Verbosity.info:
+            return colorize.fg.green;
+        case Verbosity.warn:
+            return colorize.fg.yellow;
+        case Verbosity.error:
+            return colorize.fg.red;
+        case Verbosity.crit:
+            return colorize.fg.red;
+        default:
+            return colorize.fg.white;
+        }
+    }
 }
