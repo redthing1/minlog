@@ -4,9 +4,9 @@ simple minimal logger for D
 
 ## usage
 
-```cpp
+```d
 import minlog;
 
-auto log = new Logger(Verbosity.info);
+auto log = new Logger(LoggerVerbosity.info);
 log.info("hello world");
 ````
