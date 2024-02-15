@@ -5,3 +5,8 @@ copyright "Copyright © 2024, test"
 license "proprietary"
 
 dependency "minlog" path=".."
+
+configuration "default" {
+    targetType "executable"
+	versions "default"
+}

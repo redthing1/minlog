@@ -10,7 +10,7 @@ import std.range;
 import std.algorithm;
 import colorize;
 
-enum Verbosity : int {
+enum LoggerVerbosity : int {
     debug_ = 6,
     trace = 5,
     verbose = 4,
@@ -20,154 +20,190 @@ enum Verbosity : int {
     crit = 0,
 }
 
-struct Logger {
-    public Verbosity verbosity = Verbosity.info;
-    public bool use_colors = true;
-    public bool use_meta = true;
-    public bool meta_timestamp = true;
-    public string source = null;
+enum LoggerFormat {
+    raw,
+    basic,
+    standard,
+    fancy,
+}
 
-    this(Verbosity verbosity) {
+struct Logger {
+    public LoggerVerbosity verbosity = LoggerVerbosity.info;
+    private LoggerFormat _format = LoggerFormat.standard;
+    private string _source = null;
+
+    this(LoggerVerbosity verbosity) {
         this.verbosity = verbosity;
     }
 
-    private string format_meta(Verbosity level) {
+    private string format_meta(LoggerVerbosity level) {
+        auto level_color = color_for(level);
+        auto level_shortname = short_verbosity(level);
         auto time = cast(TimeOfDay) Clock.currTime();
-        auto level_str = short_verbosity(level);
 
         auto sb = appender!string;
-        sb ~= "[";
-        if (source !is null) {
-            sb ~= source;
-            sb ~= ":";
+
+        switch (_format) {
+        case LoggerFormat.raw:
+            sb ~= "";
+            break;
+        case LoggerFormat.basic:
+            sb ~= ("[" ~ level_shortname ~ "]")
+                .color(level_color, colorize.bg.black) ~ " ";
+            break;
+        case LoggerFormat.standard:
+            auto sb0 = appender!string;
+            sb0 ~= "[";
+            if (_source !is null) {
+                sb0 ~= _source;
+                sb0 ~= ":";
+            }
+            sb0 ~= level_shortname;
+            if (true) {
+                sb0 ~= "/";
+                sb0 ~= time.toISOExtString();
+            }
+            sb0 ~= "]";
+            sb ~= sb0.data.color(level_color, colorize.bg.black) ~ " ";
+            break;
+        case LoggerFormat.fancy:
+            if (_source !is null) {
+                auto sb0 = appender!string;
+                sb0 ~= "[";
+                sb0 ~= _source;
+                sb0 ~= "]";
+                sb ~= sb0.data.color(colorize.fg.light_black, colorize.bg.black) ~ " ";
+            }
+            auto sb1 = appender!string;
+            sb1 ~= "[";
+            sb1 ~= time.toISOExtString().color(colorize.fg.light_black, colorize.bg.black);
+            sb1 ~= " ";
+            sb1 ~= level_shortname.color(level_color, colorize.bg.black);
+            sb1 ~= "]";
+            sb ~= sb1.data;
+            sb ~= " ";
+            break;
+        default:
+            assert(0, "invalid format");
         }
-        sb ~= level_str;
-        if (meta_timestamp) {
-            sb ~= "/";
-            sb ~= time.toISOExtString();
-        }
-        sb ~= "]";
 
         return sb.data;
     }
 
-    private static string short_verbosity(Verbosity level) {
+    private static string short_verbosity(LoggerVerbosity level) {
         switch (level) {
-        case Verbosity.debug_:
+        case LoggerVerbosity.debug_:
             return "dbg";
-        case Verbosity.trace:
+        case LoggerVerbosity.trace:
             return "trc";
-        case Verbosity.verbose:
+        case LoggerVerbosity.verbose:
             return "vrb";
-        case Verbosity.info:
+        case LoggerVerbosity.info:
             return "inf";
-        case Verbosity.warn:
+        case LoggerVerbosity.warn:
             return "wrn";
-        case Verbosity.error:
+        case LoggerVerbosity.error:
             return "err";
-        case Verbosity.crit:
+        case LoggerVerbosity.crit:
             return "crt";
         default:
             return to!string(level);
         }
     }
 
-    private colorize.fg color_for(Verbosity level) {
+    private colorize.fg color_for(LoggerVerbosity level) {
         switch (level) {
-        case Verbosity.debug_:
+        case LoggerVerbosity.debug_:
             return colorize.fg.light_black;
-        case Verbosity.trace:
+        case LoggerVerbosity.trace:
             return colorize.fg.light_white;
-        case Verbosity.verbose:
+        case LoggerVerbosity.verbose:
             return colorize.fg.light_blue;
-        case Verbosity.info:
+        case LoggerVerbosity.info:
             return colorize.fg.green;
-        case Verbosity.warn:
+        case LoggerVerbosity.warn:
             return colorize.fg.yellow;
-        case Verbosity.error:
+        case LoggerVerbosity.error:
             return colorize.fg.red;
-        case Verbosity.crit:
+        case LoggerVerbosity.crit:
             return colorize.fg.magenta;
         default:
             return colorize.fg.white;
         }
     }
 
-    /// writes a message
-    public void write_line(string log, Verbosity level) {
-        if (level > verbosity)
-            return;
+    public void set_format(LoggerFormat format) {
+        this._format = format;
+    }
 
-        auto level_color = color_for(level);
-        auto meta_str = format_meta(level);
+    public Logger for_source(string source) {
+        // copy the logger and set the source
+        auto dup = this;
+        dup._source = source;
+        return dup;
+    }
 
+    /** write a line to the log */
+    private void write_line(string log_str, LoggerVerbosity level) {
         auto sb = appender!string;
 
-        if (use_meta) {
-            if (use_colors) {
-                sb ~= meta_str.color(level_color, colorize.bg.black);
-            } else {
-                sb ~= meta_str;
-            }
-            sb ~= " ";
-        }
+        auto meta_str = format_meta(level);
+        sb ~= meta_str;
+        sb ~= log_str;
 
-        sb ~= log;
-
-        if (use_colors) {
-            cwriteln(sb.data);
-        } else {
-            writeln(sb.data);
-        }
+        cwriteln(sb.data);
 
         stdout.flush();
     }
 
-    public void put(T...)(T args, Verbosity level) {
+    /** write a line with a given verbosity */
+    public void put(T...)(lazy T args, LoggerVerbosity level) {
         version (null_logger) {
             return;
         }
+        if (level > verbosity)
+            return;
         write_line(format(args), level);
     }
 
-    public void debug_(T...)(T args) {
-        put(args, Verbosity.debug_);
+    public void debug_(T...)(lazy T args) {
+        put(args, LoggerVerbosity.debug_);
     }
 
     alias dbg = debug_;
 
-    public void trace(T...)(T args) {
-        put(args, Verbosity.trace);
+    public void trace(T...)(lazy T args) {
+        put(args, LoggerVerbosity.trace);
     }
 
     alias trc = trace;
 
-    public void verbose(T...)(T args) {
-        put(args, Verbosity.verbose);
+    public void verbose(T...)(lazy T args) {
+        put(args, LoggerVerbosity.verbose);
     }
 
     alias vrb = verbose;
 
-    public void info(T...)(T args) {
-        put(args, Verbosity.info);
+    public void info(T...)(lazy T args) {
+        put(args, LoggerVerbosity.info);
     }
 
     alias inf = info;
 
-    public void warn(T...)(T args) {
-        put(args, Verbosity.warn);
+    public void warn(T...)(lazy T args) {
+        put(args, LoggerVerbosity.warn);
     }
 
     alias wrn = warn;
 
-    public void error(T...)(T args) {
-        put(args, Verbosity.error);
+    public void error(T...)(lazy T args) {
+        put(args, LoggerVerbosity.error);
     }
 
     alias err = error;
 
-    public void crit(T...)(T args) {
-        put(args, Verbosity.crit);
+    public void crit(T...)(lazy T args) {
+        put(args, LoggerVerbosity.crit);
     }
 
     alias cri = crit;
