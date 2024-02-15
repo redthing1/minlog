@@ -124,6 +124,9 @@ struct Logger {
     }
 
     public void put(T...)(T args, Verbosity level) {
+        version (null_logger) {
+            return;
+        }
         write_line(format(args), level);
     }
 

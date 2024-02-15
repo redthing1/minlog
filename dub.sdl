@@ -7,3 +7,11 @@ license "proprietary"
 targetType "library"
 
 dependency "colorize" version="~>1.0.5"
+
+configuration "default" {
+	versions "default"
+}
+
+configuration "null" {
+	versions "null_logger"
+}
