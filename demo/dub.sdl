@@ -1,0 +1,7 @@
+name "demo"
+description "A minimal D application."
+authors "test"
+copyright "Copyright © 2024, test"
+license "proprietary"
+
+dependency "minlog" path=".."
