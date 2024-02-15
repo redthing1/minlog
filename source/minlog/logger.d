@@ -77,7 +77,7 @@ struct Logger {
         case Verbosity.debug_:
             return colorize.fg.light_black;
         case Verbosity.trace:
-            return colorize.fg.light_black;
+            return colorize.fg.light_white;
         case Verbosity.verbose:
             return colorize.fg.light_blue;
         case Verbosity.info:
@@ -87,7 +87,7 @@ struct Logger {
         case Verbosity.error:
             return colorize.fg.red;
         case Verbosity.crit:
-            return colorize.fg.red;
+            return colorize.fg.magenta;
         default:
             return colorize.fg.white;
         }
