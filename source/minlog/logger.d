@@ -11,8 +11,9 @@ import std.algorithm;
 import colorize;
 
 enum Verbosity : int {
-    debug_ = 5,
-    trace = 4,
+    debug_ = 6,
+    trace = 5,
+    verbose = 4,
     info = 3,
     warn = 2,
     error = 1,
@@ -30,9 +31,9 @@ struct Logger {
         this.verbosity = verbosity;
     }
 
-    private string formatMeta(Verbosity level) {
+    private string format_meta(Verbosity level) {
         auto time = cast(TimeOfDay) Clock.currTime();
-        auto level_str = shortVerbosity(level);
+        auto level_str = short_verbosity(level);
 
         auto sb = appender!string;
         sb ~= "[";
@@ -50,13 +51,55 @@ struct Logger {
         return sb.data;
     }
 
+    private static string short_verbosity(Verbosity level) {
+        switch (level) {
+        case Verbosity.debug_:
+            return "dbg";
+        case Verbosity.trace:
+            return "trc";
+        case Verbosity.verbose:
+            return "vrb";
+        case Verbosity.info:
+            return "inf";
+        case Verbosity.warn:
+            return "wrn";
+        case Verbosity.error:
+            return "err";
+        case Verbosity.crit:
+            return "crt";
+        default:
+            return to!string(level);
+        }
+    }
+
+    private colorize.fg color_for(Verbosity level) {
+        switch (level) {
+        case Verbosity.debug_:
+            return colorize.fg.light_black;
+        case Verbosity.trace:
+            return colorize.fg.light_black;
+        case Verbosity.verbose:
+            return colorize.fg.light_blue;
+        case Verbosity.info:
+            return colorize.fg.green;
+        case Verbosity.warn:
+            return colorize.fg.yellow;
+        case Verbosity.error:
+            return colorize.fg.red;
+        case Verbosity.crit:
+            return colorize.fg.red;
+        default:
+            return colorize.fg.white;
+        }
+    }
+
     /// writes a message
     public void write_line(string log, Verbosity level) {
         if (level > verbosity)
             return;
 
-        auto level_color = colorFor(level);
-        auto meta_str = formatMeta(level);
+        auto level_color = color_for(level);
+        auto meta_str = format_meta(level);
 
         auto sb = appender!string;
 
@@ -96,6 +139,12 @@ struct Logger {
 
     alias trc = trace;
 
+    public void verbose(T...)(T args) {
+        put(args, Verbosity.verbose);
+    }
+
+    alias vrb = verbose;
+
     public void info(T...)(T args) {
         put(args, Verbosity.info);
     }
@@ -119,42 +168,4 @@ struct Logger {
     }
 
     alias cri = crit;
-
-    private static string shortVerbosity(Verbosity level) {
-        switch (level) {
-        case Verbosity.debug_:
-            return "dbg";
-        case Verbosity.trace:
-            return "trc";
-        case Verbosity.info:
-            return "inf";
-        case Verbosity.warn:
-            return "wrn";
-        case Verbosity.error:
-            return "err";
-        case Verbosity.crit:
-            return "crt";
-        default:
-            return to!string(level);
-        }
-    }
-
-    private colorize.fg colorFor(Verbosity level) {
-        switch (level) {
-        case Verbosity.debug_:
-            return colorize.fg.light_black;
-        case Verbosity.trace:
-            return colorize.fg.light_black;
-        case Verbosity.info:
-            return colorize.fg.green;
-        case Verbosity.warn:
-            return colorize.fg.yellow;
-        case Verbosity.error:
-            return colorize.fg.red;
-        case Verbosity.crit:
-            return colorize.fg.red;
-        default:
-            return colorize.fg.white;
-        }
-    }
 }
