@@ -11,6 +11,8 @@ import std.algorithm;
 import colorize;
 
 enum LoggerVerbosity : int {
+    annoying = 8,
+    pedantic = 7,
     debug_ = 6,
     trace = 5,
     verbose = 4,
@@ -92,6 +94,10 @@ struct Logger {
 
     private static string short_verbosity(LoggerVerbosity level) {
         switch (level) {
+        case LoggerVerbosity.annoying:
+            return "ayg";
+        case LoggerVerbosity.pedantic:
+            return "ped";
         case LoggerVerbosity.debug_:
             return "dbg";
         case LoggerVerbosity.trace:
@@ -113,6 +119,8 @@ struct Logger {
 
     private colorize.fg color_for(LoggerVerbosity level) {
         switch (level) {
+        case LoggerVerbosity.annoying:
+        case LoggerVerbosity.pedantic:
         case LoggerVerbosity.debug_:
             return colorize.fg.light_black;
         case LoggerVerbosity.trace:
@@ -165,6 +173,18 @@ struct Logger {
             return;
         write_line(format(args), level);
     }
+
+    public void annoying(T...)(lazy T args) {
+        put(args, LoggerVerbosity.annoying);
+    }
+
+    alias ayg = annoying;
+
+    public void pedantic(T...)(lazy T args) {
+        put(args, LoggerVerbosity.pedantic);
+    }
+
+    alias ped = pedantic;
 
     public void debug_(T...)(lazy T args) {
         put(args, LoggerVerbosity.debug_);

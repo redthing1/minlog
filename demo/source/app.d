@@ -3,7 +3,7 @@ import std.stdio;
 import minlog;
 
 void main() {
-	auto log1 = Logger(LoggerVerbosity.debug_);
+	auto log1 = Logger(LoggerVerbosity.pedantic);
 	log1.cri("this is a critical message");
 	log1.err("this is an error message");
 	log1.wrn("this is a warning message");
@@ -11,6 +11,7 @@ void main() {
 	log1.vrb("this is a verbose message");
 	log1.trc("this is a trace message");
 	log1.dbg("this is a debug message");
+	log1.ped("this is a pedantic message");
 
 	auto log2 = Logger(LoggerVerbosity.info);
 	auto log2_test2 = log2.for_source("Test2");
